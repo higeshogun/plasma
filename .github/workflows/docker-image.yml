@@ -4,7 +4,6 @@ on:
   push:
     branches:
       - master  # Or 'master', check your fork's default branch
-  workflow_dispatch:
   pull_request:
     types:
       - opened
