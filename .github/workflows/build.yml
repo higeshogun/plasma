@@ -87,8 +87,8 @@ jobs:
       matrix:
         gpu-type:
           # amdgpu
-          - gpu: AMD
-            driver: "4.0"
+          # - gpu: AMD
+          #  driver: "4.0"
           # Latest prod
           - gpu: NVIDIA
             driver: "570.144"
