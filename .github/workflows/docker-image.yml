@@ -18,8 +18,8 @@ on:
       - published
 push:
     branches:
-      - master  # Or 'master', check your fork's default branch
-  workflow_dispatch: # This adds a manual "Run workflow" button
+      - master
+  workflow_dispatch:
 
 jobs:
   build-plasma-base:
