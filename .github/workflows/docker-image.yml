@@ -24,6 +24,9 @@ jobs:
   build-plasma-base:
     name: Build base image
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
 
     outputs:
       base-version: ${{ steps.base-tag.outputs.version }}
@@ -77,6 +80,9 @@ jobs:
   build-plasma-gpu:
     name: Build GPU images
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
 
     needs:
       - build-plasma-base
