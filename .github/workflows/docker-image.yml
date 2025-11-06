@@ -22,26 +22,30 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
 
       # --- STEP 1: Build and Push the BASE image ---
+      # This builds the 'Dockerfile'
       - name: Build and push BASE image
         uses: docker/build-push-action@v5
         with:
           context: .
-          # This is the main 'Dockerfile'
           file: ./Dockerfile
           push: true
-          # Tag it as 'base-latest'
-          tags: ghcr.io/${{ github.repository }}:base-latest
+          # We will tag this one simply as ':base'
+          tags: ghcr.io/${{ github.repository }}:base
 
-      # --- STEP 2: Buildand Push the NVIDIA image ---
+      # --- STEP 2: Build and Push the NVIDIA image ---
+      # This builds the 'nvidia.Dockerfile'
       - name: Build and push NVIDIA image
         uses: docker/build-push-action@v5
         with:
           context: .
-          # This is the 'nvidia.Dockerfile'
           file: ./nvidia.Dockerfile
-          # Tell the build to use the base image we just pushed
+          
+          # This is the fix: We pass the image name and tag as
+          # two separate arguments, just as the Dockerfile expects.
           build-args: |
-            PLASMA_BASE=ghcr.io/${{ github.repository }}:base-latest
+            PLASMA_BASE=ghcr.io/${{ github.repository }}
+            PLASMA_VERSION=base
+            
           push: true
-          # Tag this one as 'latest' (the one you will use)
+          # The final image (the one you use) will be tagged ':latest'
           tags: ghcr.io/${{ github.repository }}:latest
