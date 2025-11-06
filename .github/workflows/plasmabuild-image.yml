@@ -1,5 +1,20 @@
 name: Build Plasma
-
+on:
+  pull_request:
+    types:
+      - opened
+      - synchronize
+    paths:
+      - src/**
+      - config/**
+      - '*.Dockerfile'
+      - Dockerfile
+      - .github/workflows/*
+      - action.yml
+    push:
+      branches:
+      - master  # Or 'master', check your fork's default branch
+  workflow_dispatch:
 on:
   pull_request:
     types:
