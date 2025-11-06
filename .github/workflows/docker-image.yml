@@ -1,127 +1,37 @@
-name: Build Plasma
+name: Build and Push My Plasma Image
 
+# This lets you run it manually from the "Actions" tab
 on:
-  push:
-    branches:
-      - master  # Or 'master', check your fork's default branch
-  pull_request:
-    types:
-      - opened
-      - synchronize
-    paths:
-      - src/**
-      - config/**
-      - '*.Dockerfile'
-      - Dockerfile
-      - .github/workflows/*
-      - action.yml
-
-  release:
-    types:
-      - published
+  workflow_dispatch:
 
 jobs:
-  build-plasma-base:
-    name: Build base image
+  build-and-push:
     runs-on: ubuntu-latest
+
+    # This is CRITICAL. It gives the job permission to write to your packages.
     permissions:
       contents: read
       packages: write
 
-    outputs:
-      base-version: ${{ steps.base-tag.outputs.version }}
-
     steps:
-      - name: Checkout
+      - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Login to Docker registry
-        run: echo ${{ secrets.DOCKER_PASSWORD }} | docker login -u ${{ secrets.DOCKER_USERNAME }} --password-stdin
-
-      - name: Base image tag
-        id: base-tag
-        run: |
-          version=""
-          if [[ ${{ github.event_name }} == 'release' ]]; then
-            version=${{ github.ref_name }}
-          else
-            version=pr-${{ github.event.pull_request.number }}
-          fi
-          echo "::notice title=Docker tag::Using base docker version: ${version}"
-          echo "version=${version}" >> "$GITHUB_OUTPUT"
-      - name: Build base image
-        run: |
-          docker build \
-            -t jsmrcaga/plasma:${{ steps.base-tag.outputs.version }} \
-            --platform linux/amd64 \
-            --build-arg=VERSION=${{ steps.base-tag.outputs.version }} \
-            --build-arg=SUNSHINE_USERNAME=plasma \
-            --build-arg=SUNSHINE_PASSWORD=mellon \
-            -f Dockerfile \
-            .
-      - name: Publish base image
-        if: ${{ github.event_name == 'release' }}
-        run: |
-          docker tag jsmrcaga/plasma:${{ steps.base-tag.outputs.version }} jsmrcaga/plasma:latest
-          docker push jsmrcaga/plasma --all-tags
-      - name: Save image
-        if: ${{ github.event_name == 'pull_request' }}
-        run: docker save -o plasma-cache.tar jsmrcaga/plasma:${{ steps.base-tag.outputs.version }}
-
-      - name: Cache image
-        if: ${{ github.event_name == 'pull_request' }}
-        uses: actions/upload-artifact@v4
+      - name: Log in to the GitHub Container Registry (ghcr.io)
+        uses: docker/login-action@v3
         with:
-          name: plasma-cache
-          path: ./plasma-cache.tar
-          retention-days: 1
-          compression-level: 0
+          registry: ghcr.io
+          # 'github.actor' is your username
+          username: ${{ github.actor }}
+          # 'GITHUB_TOKEN' is an automatic, temporary password
+          password: ${{ secrets.GITHUB_TOKEN }} 
 
-  build-plasma-gpu:
-    name: Build GPU images
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      packages: write
-
-    needs:
-      - build-plasma-base
-
-    strategy:
-      matrix:
-        gpu-type:
-          # amdgpu
-          # - gpu: AMD
-          #  driver: "4.0"
-          # Latest prod
-          - gpu: NVIDIA
-            driver: "570.144"
-
-    steps:
-      - name: Download Cached image
-        if: ${{ github.event_name == 'pull_request' }}
-        uses: actions/download-artifact@v4
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v5
         with:
-          name: plasma-cache
-          path: ./
-          
-      - name: Load cached image
-        if: ${{ github.event_name == 'pull_request' }}
-        run: docker load -i plasma-cache.tar
-
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - uses: ./
-        name: Build GPU image
-        with:
-          docker-username: ${{ secrets.DOCKER_USERNAME }}
-          docker-password: ${{ secrets.DOCKER_PASSWORD }}
-          version: ${{ needs.build-plasma-base.outputs.base-version }}-${{ matrix.gpu-type.gpu }}-${{ matrix.gpu-type.driver }}
-          # This, not being 'local', will prevent the action from building a base image
-          plasma-base: jsmrcaga/plasma
-          plasma-version: ${{ needs.build-plasma-base.outputs.base-version }}
-          gpu: ${{ matrix.gpu-type.gpu }}
-          amd-gcn-version: ${{ matrix.gpu-type.driver }}
-          nvidia-driver-version: ${{ matrix.gpu-type.driver }}
-          docker-push: ${{ github.event_name == 'release' && 'yes' || 'no' }}
+          context: .
+          # This tells it to build the NVIDIA Dockerfile
+          file: ./nvidia.Dockerfile
+          push: true
+          # This tags the image as ghcr.io/YOUR-USERNAME/plasma:latest
+          tags: ghcr.io/${{ github.repository }}:latest
