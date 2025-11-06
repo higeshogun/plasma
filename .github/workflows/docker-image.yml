@@ -18,7 +18,7 @@ on:
       - published
 push:
     branches:
-      - main  # Or 'master', check your fork's default branch
+      - master  # Or 'master', check your fork's default branch
   workflow_dispatch: # This adds a manual "Run workflow" button
 
 jobs:
