@@ -1,14 +1,11 @@
 name: Build and Push My Plasma Image
 
-# This lets you run it manually from the "Actions" tab
 on:
   workflow_dispatch:
 
 jobs:
   build-and-push:
     runs-on: ubuntu-latest
-
-    # This is CRITICAL. It gives the job permission to write to your packages.
     permissions:
       contents: read
       packages: write
@@ -21,17 +18,30 @@ jobs:
         uses: docker/login-action@v3
         with:
           registry: ghcr.io
-          # 'github.actor' is your username
           username: ${{ github.actor }}
-          # 'GITHUB_TOKEN' is an automatic, temporary password
-          password: ${{ secrets.GITHUB_TOKEN }} 
+          password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Build and push Docker image
+      # --- STEP 1: Build and Push the BASE image ---
+      - name: Build and push BASE image
         uses: docker/build-push-action@v5
         with:
           context: .
-          # This tells it to build the NVIDIA Dockerfile
-          file: ./nvidia.Dockerfile
+          # This is the main 'Dockerfile'
+          file: ./Dockerfile
           push: true
-          # This tags the image as ghcr.io/YOUR-USERNAME/plasma:latest
+          # Tag it as 'base-latest'
+          tags: ghcr.io/${{ github.repository }}:base-latest
+
+      # --- STEP 2: Build and Push the NVIDIA image ---
+      - name: Build and push NVIDIA image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          # This is the 'nvidia.Dockerfile'
+          file: ./nvidia.Dockerfile
+          # Tell the build to use the base image we just pushed
+          build-args: |
+            PLASMA_BASE=ghcr.io/${{ github.repository }}:base-latest
+          push: true
+          # Tag this one as 'latest' (the one you will use)
           tags: ghcr.io/${{ github.repository }}:latest
