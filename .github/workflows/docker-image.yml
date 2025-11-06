@@ -32,7 +32,7 @@ jobs:
           # Tag it as 'base-latest'
           tags: ghcr.io/${{ github.repository }}:base-latest
 
-      # --- STEP 2: Build and Push the NVIDIA image ---
+      # --- STEP 2: Buildand Push the NVIDIA image ---
       - name: Build and push NVIDIA image
         uses: docker/build-push-action@v5
         with:
